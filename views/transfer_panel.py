@@ -1,56 +1,70 @@
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 from models import transfer_model
 from views import admin_panel
 
-def open(root):
+def center_window(root, width=800, height=500):
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    x = (screen_width - width) // 2
+    y = (screen_height - height) // 2
+    root.geometry(f"{width}x{height}+{x}+{y}")
+
+def open_transfer_panel(root):
     for widget in root.winfo_children():
         widget.destroy()
+    root.configure(bg="#2e2e2e")
+    center_window(root)
 
-    tk.Label(root, text="График трансферов").pack(pady=10)
+    tk.Label(root, text="Добавить трансфер", font=("Arial", 14), bg="#2e2e2e", fg="white").pack(pady=10)
 
-    form = tk.Frame(root)
-    form.pack(pady=5)
+    form = tk.Frame(root, bg="#2e2e2e")
+    form.pack()
 
-    tk.Label(form, text="Город").grid(row=0, column=0)
-    city_entry = tk.Entry(form)
-    city_entry.grid(row=0, column=1)
+    labels = ["ID Тура", "Дата (YYYY-MM-DD)", "Тип трансфера"]
+    entries = []
 
-    tk.Label(form, text="Дата (YYYY-MM-DD)").grid(row=1, column=0)
-    date_entry = tk.Entry(form)
-    date_entry.grid(row=1, column=1)
-
-    tk.Label(form, text="Описание").grid(row=2, column=0)
-    desc_entry = tk.Entry(form)
-    desc_entry.grid(row=2, column=1)
+    for i, label in enumerate(labels):
+        tk.Label(form, text=label, bg="#2e2e2e", fg="white").grid(row=i, column=0, sticky='e', padx=5, pady=2)
+        entry = tk.Entry(form, bg="#444444", fg="white", insertbackground="white")
+        entry.grid(row=i, column=1, padx=5, pady=2)
+        entries.append(entry)
 
     def on_add():
-        city = city_entry.get()
-        date = date_entry.get()
-        description = desc_entry.get()
+        try:
+            tour_id = int(entries[0].get())
+            date = entries[1].get()
+            ttype = entries[2].get()
+            transfer_model.add_transfer(tour_id, date, ttype)
+            messagebox.showinfo("Успех", "Трансфер добавлен!")
+            refresh()
+        except Exception as e:
+            messagebox.showerror("Ошибка", str(e))
 
-        if not city or not date:
-            messagebox.showerror("Ошибка", "Заполните все поля")
-            return
+    tk.Button(root, text="Добавить", command=on_add, bg="#666666", fg="white").pack(pady=10)
 
-        transfer_model.add_transfer(city, date, description)
-        messagebox.showinfo("Успех", "Трансфер добавлен")
-        city_entry.delete(0, tk.END)
-        date_entry.delete(0, tk.END)
-        desc_entry.delete(0, tk.END)
-        refresh()
+    style = ttk.Style()
+    style.theme_use("default")
+    style.configure("Treeview",
+        background="#3a3a3a",
+        foreground="white",
+        fieldbackground="#3a3a3a",
+        rowheight=25,
+        font=("Arial", 10)
+    )
+    style.map("Treeview", background=[("selected", "#5a5a5a")])
 
-    tk.Button(root, text="Добавить трансфер", command=on_add).pack(pady=5)
+    tree = ttk.Treeview(root, columns=("id", "tour_id", "date", "type"), show="headings")
+    tree.pack(expand=True, fill="both", padx=20, pady=5)
 
-    tree = ttk.Treeview(root, columns=("id", "city", "date", "description"), show="headings")
-    tree.pack(fill="both", expand=True)
     for col in tree["columns"]:
         tree.heading(col, text=col)
 
     def refresh():
         tree.delete(*tree.get_children())
         for t in transfer_model.get_all_transfers():
-            tree.insert("", "end", values=(t["id"], t["city"], t["date"], t["description"]))
+            tree.insert("", "end", values=(t["id"], t["tour_id"], t["date"], t["type"]))
 
     def on_delete():
         selected = tree.selection()
@@ -62,8 +76,7 @@ def open(root):
         messagebox.showinfo("Удалено", "Трансфер удалён")
         refresh()
 
-    tk.Button(root, text="Удалить выбранный трансфер", command=on_delete).pack(pady=5)
-    tk.Button(root, text="Назад", command=lambda: admin_panel.open_admin_panel(root)).pack(pady=5)
-
+    tk.Button(root, text="Удалить выбранный", command=on_delete, bg="#666666", fg="white").pack(pady=5)
+    tk.Button(root, text="Назад", command=lambda: admin_panel.open_admin_panel(root), bg="#666666", fg="white").pack(pady=5)
 
     refresh()

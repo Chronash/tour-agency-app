@@ -7,16 +7,23 @@ def login(username, password):
     user = cursor.fetchone()
     cursor.close()
     conn.close()
-    return user
+    return user  # возвращается словарь с ключами: id, username, password, role, food_preferences, allergies
 
-def register(username, password):
+def register(username, password, food_pref, allergies):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE username=%s", (username,))
+
+    # проверка на существующего пользователя
+    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     if cursor.fetchone():
         return False, "Пользователь уже существует"
-    cursor.execute("INSERT INTO users (username, password, role) VALUES (%s, %s, 'user')", (username, password))
+
+    cursor.execute(
+        "INSERT INTO users (username, password, role, food_preferences, allergies) VALUES (%s, %s, %s, %s, %s)",
+        (username, password, 'user', food_pref, allergies)
+    )
+
     conn.commit()
     cursor.close()
     conn.close()
-    return True, "Регистрация прошла успешно"
+    return True, "Регистрация успешна"
